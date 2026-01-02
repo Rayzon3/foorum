@@ -10,7 +10,7 @@ Monorepo scaffold for a social networking web app.
 ## Quick start
 
 1. Install deps:
-   - `npm install`
+   - `npm run install:all`
 2. Start Postgres:
    - `docker compose up -d`
 3. Apply schema:
