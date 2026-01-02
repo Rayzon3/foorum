@@ -1,0 +1,9 @@
+{
+  "name": "jabber-api",
+  "private": true,
+  "scripts": {
+    "dev": "go run ./cmd/server",
+    "build": "go build -o ./bin/server ./cmd/server",
+    "migrate:up": "goose -dir db/migrations postgres \"$DATABASE_URL\" up"
+  }
+}
