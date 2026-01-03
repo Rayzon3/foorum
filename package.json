@@ -5,10 +5,10 @@
     "apps/*"
   ],
   "scripts": {
-    "dev:web": "npm --workspace apps/web run dev",
-    "build:web": "npm --workspace apps/web run build",
-    "dev:api": "npm --workspace apps/api run dev",
+    "dev:web": "pnpm --filter ./apps/web... dev",
+    "build:web": "pnpm --filter ./apps/web... build",
+    "dev:api": "pnpm --filter ./apps/api... dev",
     "migrate:up": "goose -dir apps/api/db/migrations postgres \"$DATABASE_URL\" up",
-    "install:all": "npm install && npm --workspace apps/web install && cd apps/api && go mod download"
+    "install:all": "pnpm install && cd apps/api && go mod download"
   }
 }

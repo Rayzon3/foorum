@@ -10,18 +10,18 @@ Monorepo scaffold for a social networking web app.
 ## Quick start
 
 1. Install deps:
-   - `npm run install:all`
+   - `pnpm run install:all`
 2. Start Postgres:
    - `docker compose up -d`
 3. Apply schema:
    - `export DATABASE_URL="postgres://postgres:postgres@localhost:5432/jabber?sslmode=disable"`
-   - `npm run migrate:up`
+   - `pnpm run migrate:up`
 4. Configure env:
    - `cp apps/api/.env.example apps/api/.env`
 5. Run API:
-   - `npm run dev:api`
+   - `pnpm run dev:api`
 6. Run web:
-   - `npm run dev:web`
+   - `pnpm run dev:web`
 
 ## Auth endpoints
 
