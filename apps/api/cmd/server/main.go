@@ -14,7 +14,7 @@ import (
 
 	"jabber_v3/apps/api/internal/auth"
 	"jabber_v3/apps/api/internal/config"
-	httpapi "jabber_v3/apps/api/internal/http"
+	"jabber_v3/apps/api/internal/http/routes"
 	"jabber_v3/apps/api/internal/store"
 )
 
@@ -33,20 +33,19 @@ func main() {
     log.Fatalf("db ping failed: %v", err)
   }
 
-  appStore := &store.Store{DB: db}
+  appStore := store.New(db)
   jwtManager := auth.JWTManager{Secret: []byte(cfg.JWTSecret), TTL: 24 * time.Hour}
-  server := httpapi.NewServer(appStore, jwtManager)
 
   httpServer := &http.Server{
     Addr:         ":" + cfg.Port,
-    Handler:      server.Routes(cfg.CorsOrigins),
+    Handler:      routes.NewRouter(appStore, jwtManager, cfg.CorsOrigins),
     ReadTimeout:  5 * time.Second,
     WriteTimeout: 10 * time.Second,
     IdleTimeout:  60 * time.Second,
   }
 
   go func() {
-    log.Printf("api listening on %s", httpServer.Addr)
+    log.Printf("** server listening on %s **", httpServer.Addr)
     if err := httpServer.ListenAndServe(); err != nil && err != http.ErrServerClosed {
       log.Fatalf("server error: %v", err)
     }
