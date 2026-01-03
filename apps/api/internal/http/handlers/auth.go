@@ -1,6 +1,7 @@
 package handlers
 
 import (
+  "context"
   "encoding/json"
   "errors"
   "net/http"
@@ -11,6 +12,7 @@ import (
   "jabber_v3/apps/api/internal/auth"
   "jabber_v3/apps/api/internal/http/response"
   "jabber_v3/apps/api/internal/http/types"
+  "jabber_v3/apps/api/internal/models"
   "jabber_v3/apps/api/internal/store"
 )
 
@@ -31,7 +33,8 @@ func (h *Handler) HandleRegister(w http.ResponseWriter, r *http.Request) {
   }
 
   email := normalizeEmail(req.Email)
-  if email == "" || len(req.Password) < 8 {
+  username := normalizeUsername(req.Username)
+  if email == "" || username == "" || len(req.Password) < 8 {
     response.WriteError(w, http.StatusBadRequest, "invalid_credentials")
     return
   }
@@ -42,10 +45,14 @@ func (h *Handler) HandleRegister(w http.ResponseWriter, r *http.Request) {
     return
   }
 
-  user, err := h.store.Users.CreateUser(r.Context(), email, hash)
+  user, err := h.store.Users.CreateUser(r.Context(), email, username, hash)
   if err != nil {
     var pgErr *pgconn.PgError
     if errors.As(err, &pgErr) && pgErr.Code == "23505" {
+      if pgErr.ConstraintName == "users_username_unique" {
+        response.WriteError(w, http.StatusConflict, "username_taken")
+        return
+      }
       response.WriteError(w, http.StatusConflict, "email_taken")
       return
     }
@@ -61,7 +68,7 @@ func (h *Handler) HandleRegister(w http.ResponseWriter, r *http.Request) {
 
   response.WriteJSON(w, http.StatusCreated, types.AuthResponse{
     Token: token,
-    User: types.UserView{ID: user.ID, Email: user.Email, CreatedAt: user.CreatedAt},
+    User: types.UserView{ID: user.ID, Email: user.Email, Username: user.Username, CreatedAt: user.CreatedAt},
   })
 }
 
@@ -72,13 +79,16 @@ func (h *Handler) HandleLogin(w http.ResponseWriter, r *http.Request) {
     return
   }
 
-  email := normalizeEmail(req.Email)
-  if email == "" || req.Password == "" {
+  identifier := strings.TrimSpace(req.Email)
+  if identifier == "" {
+    identifier = strings.TrimSpace(req.Username)
+  }
+  if identifier == "" || req.Password == "" {
     response.WriteError(w, http.StatusBadRequest, "invalid_credentials")
     return
   }
 
-  user, err := h.store.Users.GetUserByEmail(r.Context(), email)
+  user, err := h.lookupUser(r.Context(), identifier)
   if err != nil {
     if errors.Is(err, store.ErrNotFound) {
       response.WriteError(w, http.StatusUnauthorized, "invalid_login")
@@ -101,11 +111,23 @@ func (h *Handler) HandleLogin(w http.ResponseWriter, r *http.Request) {
 
   response.WriteJSON(w, http.StatusOK, types.AuthResponse{
     Token: token,
-    User: types.UserView{ID: user.ID, Email: user.Email, CreatedAt: user.CreatedAt},
+    User: types.UserView{ID: user.ID, Email: user.Email, Username: user.Username, CreatedAt: user.CreatedAt},
   })
 }
 
 func normalizeEmail(email string) string {
   email = strings.TrimSpace(strings.ToLower(email))
   return email
+}
+
+func normalizeUsername(username string) string {
+  username = strings.TrimSpace(strings.ToLower(username))
+  return username
+}
+
+func (h *Handler) lookupUser(ctx context.Context, identifier string) (models.User, error) {
+  if strings.Contains(identifier, "@") {
+    return h.store.Users.GetUserByEmail(ctx, normalizeEmail(identifier))
+  }
+  return h.store.Users.GetUserByUsername(ctx, normalizeUsername(identifier))
 }

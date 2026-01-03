@@ -27,5 +27,5 @@ func (h *Handler) HandleMe(w http.ResponseWriter, r *http.Request) {
     return
   }
 
-  response.WriteJSON(w, http.StatusOK, types.UserView{ID: record.ID, Email: record.Email, CreatedAt: record.CreatedAt})
+  response.WriteJSON(w, http.StatusOK, types.UserView{ID: record.ID, Email: record.Email, Username: record.Username, CreatedAt: record.CreatedAt})
 }

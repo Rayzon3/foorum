@@ -10,8 +10,8 @@ export type AuthState = {
 };
 
 type AuthContextValue = AuthState & {
-  login: (email: string, password: string) => Promise<void>;
-  register: (email: string, password: string) => Promise<void>;
+  login: (identifier: string, password: string) => Promise<void>;
+  register: (email: string, username: string, password: string) => Promise<void>;
   logout: () => void;
 };
 
@@ -60,10 +60,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     };
   }, [token]);
 
-  async function handleLogin(email: string, password: string) {
+  async function handleLogin(identifier: string, password: string) {
     setLoading(true);
     try {
-      const result = await api.login(email, password);
+      const result = await api.login(identifier, password);
       setToken(result.token);
       setUser(result.user);
       localStorage.setItem("jabber_token", result.token);
@@ -76,10 +76,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }
 
-  async function handleRegister(email: string, password: string) {
+  async function handleRegister(email: string, username: string, password: string) {
     setLoading(true);
     try {
-      const result = await api.register(email, password);
+      const result = await api.register(email, username, password);
       setToken(result.token);
       setUser(result.user);
       localStorage.setItem("jabber_token", result.token);

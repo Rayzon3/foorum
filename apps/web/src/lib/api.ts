@@ -1,6 +1,7 @@
 export type User = {
   id: string;
   email: string;
+  username: string;
   createdAt: string;
 };
 
@@ -24,17 +25,17 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
   return response.json();
 }
 
-export async function register(email: string, password: string) {
+export async function register(email: string, username: string, password: string) {
   return request<{ token: string; user: User }>("/api/v1/auth/register", {
     method: "POST",
-    body: JSON.stringify({ email, password })
+    body: JSON.stringify({ email, username, password })
   });
 }
 
-export async function login(email: string, password: string) {
+export async function login(identifier: string, password: string) {
   return request<{ token: string; user: User }>("/api/v1/auth/login", {
     method: "POST",
-    body: JSON.stringify({ email, password })
+    body: JSON.stringify({ email: identifier, password })
   });
 }
 

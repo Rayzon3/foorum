@@ -167,13 +167,20 @@ function AuthForm({
   action,
   onSubmit,
   footer,
+  showUsername = false,
+  emailLabel = "Email",
+  emailType = "email",
 }: {
   title: string;
   action: string;
-  onSubmit: (email: string, password: string) => Promise<void>;
+  onSubmit: (email: string, password: string, username?: string) => Promise<void>;
   footer: React.ReactNode;
+  showUsername?: boolean;
+  emailLabel?: string;
+  emailType?: "email" | "text";
 }) {
   const [email, setEmail] = React.useState("");
+  const [username, setUsername] = React.useState("");
   const [password, setPassword] = React.useState("");
   const [error, setError] = React.useState<string | null>(null);
   const auth = useAuth();
@@ -182,7 +189,7 @@ function AuthForm({
     event.preventDefault();
     setError(null);
     try {
-      await onSubmit(email, password);
+      await onSubmit(email, password, username);
     } catch (err) {
       setError((err as Error).message);
     }
@@ -196,15 +203,27 @@ function AuthForm({
       </p>
       <form className="mt-6 space-y-4" onSubmit={handleSubmit}>
         <label className="block text-sm text-slate-300">
-          Email
+          {emailLabel}
           <input
-            type="email"
+            type={emailType}
             value={email}
             onChange={(event) => setEmail(event.target.value)}
             className="mt-2 w-full rounded-2xl border border-slate-700 bg-slate-950/70 px-4 py-2 text-slate-100"
             required
           />
         </label>
+        {showUsername && (
+          <label className="block text-sm text-slate-300">
+            Username
+            <input
+              type="text"
+              value={username}
+              onChange={(event) => setUsername(event.target.value)}
+              className="mt-2 w-full rounded-2xl border border-slate-700 bg-slate-950/70 px-4 py-2 text-slate-100"
+              required
+            />
+          </label>
+        )}
         <label className="block text-sm text-slate-300">
           Password
           <input
@@ -237,8 +256,10 @@ function LoginPage() {
     <AuthForm
       title="Welcome back"
       action="Log in"
-      onSubmit={async (email, password) => {
-        await auth.login(email, password);
+      emailLabel="Email or username"
+      emailType="text"
+      onSubmit={async (identifier, password) => {
+        await auth.login(identifier, password);
         await navigate({ to: "/" });
       }}
       footer={
@@ -260,8 +281,9 @@ function RegisterPage() {
     <AuthForm
       title="Create your account"
       action="Sign up"
-      onSubmit={async (email, password) => {
-        await auth.register(email, password);
+      showUsername
+      onSubmit={async (email, password, username) => {
+        await auth.register(email, username ?? "", password);
         await navigate({ to: "/" });
       }}
       footer={
