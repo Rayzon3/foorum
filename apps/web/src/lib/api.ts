@@ -5,6 +5,20 @@ export type User = {
   createdAt: string;
 };
 
+export type Post = {
+  id: string;
+  title: string;
+  body: string;
+  createdAt: string;
+  author: {
+    id: string;
+    email: string;
+    username: string;
+  };
+  score: number;
+  myVote: number;
+};
+
 const baseUrl = import.meta.env.VITE_API_URL ?? "http://localhost:8080";
 
 async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
@@ -44,5 +58,35 @@ export async function fetchMe(token: string) {
     headers: {
       Authorization: `Bearer ${token}`
     }
+  });
+}
+
+export async function fetchFeed(token?: string) {
+  return request<Post[]>("/api/v1/posts", {
+    headers: token ? { Authorization: `Bearer ${token}` } : {}
+  });
+}
+
+export async function createPost(
+  token: string,
+  title: string,
+  body: string
+) {
+  return request<Post>("/api/v1/posts", {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${token}`
+    },
+    body: JSON.stringify({ title, body })
+  });
+}
+
+export async function votePost(token: string, postID: string, value: number) {
+  return request<{ status: string }>(`/api/v1/posts/${postID}/vote`, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${token}`
+    },
+    body: JSON.stringify({ value })
   });
 }

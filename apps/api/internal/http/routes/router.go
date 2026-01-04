@@ -34,6 +34,12 @@ func NewRouter(store *store.Store, jwt auth.JWTManager, allowedOrigins []string)
     r.Post("/auth/register", handler.HandleRegister)
     r.Post("/auth/login", handler.HandleLogin)
     r.With(middleware.Auth(jwt)).Get("/me", handler.HandleMe)
+
+    r.Route("/posts", func(r chi.Router) {
+      r.With(middleware.OptionalAuth(jwt)).Get("/", handler.HandleFeed)
+      r.With(middleware.Auth(jwt)).Post("/", handler.HandleCreatePost)
+      r.With(middleware.Auth(jwt)).Post("/{postID}/vote", handler.HandleVote)
+    })
   })
 
   return r
