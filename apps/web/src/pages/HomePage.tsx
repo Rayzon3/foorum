@@ -5,7 +5,14 @@ import { ArrowDown, ArrowUp } from "lucide-react";
 import * as api from "../lib/api";
 import { useAuth } from "../lib/auth";
 import { Button } from "../components/ui/button";
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "../components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "../components/ui/card";
 import { Input } from "../components/ui/input";
 import { Textarea } from "../components/ui/textarea";
 import {
@@ -103,11 +110,10 @@ export function HomePage() {
       <div className="space-y-6">
         <Card className="rounded-3xl border-border/70 bg-card/90">
           <CardHeader>
-            <CardTitle className="text-3xl">Start new connections</CardTitle>
+            <CardTitle className="text-3xl">Start new conversations</CardTitle>
             <CardDescription className="text-base">
-              Jabber is a lightweight social layer. Build rooms, follow people,
-              and keep the conversation flowing. This scaffold includes auth,
-              routing, and a Go API.
+              Jabber is social app currently in development. Build rooms create
+              posts, follow people, and keep the conversation flowing.
             </CardDescription>
           </CardHeader>
           <CardContent className="pt-0">
@@ -127,8 +133,9 @@ export function HomePage() {
                     <DialogHeader>
                       <DialogTitle>About this scaffold</DialogTitle>
                       <DialogDescription>
-                        Gruvbox-dark UI, JWT auth, and a Go API ready for posts,
-                        feeds, and realtime rooms.
+                        Gruvbox-dark UI made with React on the frontend and Go
+                        API ready for posts, feeds, and realtime rooms(coming
+                        soon).
                       </DialogDescription>
                     </DialogHeader>
                     <DialogFooter>
@@ -203,24 +210,6 @@ export function HomePage() {
             )}
           </CardContent>
         </Card>
-        <div className="grid gap-4 sm:grid-cols-2">
-          <FeatureCard
-            title="Fast onboarding"
-            detail="Register, login, and hit /me in minutes."
-          />
-          <FeatureCard
-            title="TanStack ready"
-            detail="Router + React Query wired and waiting."
-          />
-          <FeatureCard
-            title="Go + Chi"
-            detail="Simple HTTP handlers with JWT auth."
-          />
-          <FeatureCard
-            title="Postgres"
-            detail="SQL-first schema with migrations."
-          />
-        </div>
       </div>
       <aside className="space-y-6">
         <Card className="rounded-3xl border-border/70 bg-card/90">

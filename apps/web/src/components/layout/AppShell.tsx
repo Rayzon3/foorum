@@ -16,9 +16,6 @@ export function AppShell() {
             </div>
             <div>
               <p className="text-lg font-semibold">Jabber</p>
-              <p className="text-xs text-muted-foreground">
-                Connect the dots in realtime
-              </p>
             </div>
           </div>
           <nav className="flex items-center gap-4 text-sm">

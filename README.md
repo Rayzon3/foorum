@@ -28,3 +28,9 @@ Monorepo scaffold for a social networking web app.
 - `POST /api/v1/auth/register`
 - `POST /api/v1/auth/login`
 - `GET /api/v1/me` (requires `Authorization: Bearer <token>`)
+
+## Post endpoints
+
+- `GET /api/v1/posts` (optional `Authorization: Bearer <token>`)
+- `POST /api/v1/posts` (requires `Authorization: Bearer <token>`)
+- `POST /api/v1/posts/:postID/vote` (requires `Authorization: Bearer <token>`, body `{ "value": 1 | -1 | 0 }`)
