@@ -2,8 +2,8 @@ import React from "react";
 import { Link } from "@tanstack/react-router";
 import { ArrowDown, ArrowUp } from "lucide-react";
 
-import * as api from "../lib/api";
 import { useAuth } from "../lib/auth";
+import { useCreatePost, useFeed, useVotePost } from "../lib/hooks/posts";
 import { Button } from "../components/ui/button";
 import {
   Card,
@@ -25,83 +25,39 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "../components/ui/dialog";
-import { FeatureCard } from "../components/home/FeatureCard";
 
 export function HomePage() {
   const auth = useAuth();
-  const [posts, setPosts] = React.useState<api.Post[]>([]);
-  const [loadingPosts, setLoadingPosts] = React.useState(true);
-  const [postError, setPostError] = React.useState<string | null>(null);
   const [title, setTitle] = React.useState("");
   const [body, setBody] = React.useState("");
-  const [submitting, setSubmitting] = React.useState(false);
-
-  React.useEffect(() => {
-    let active = true;
-    async function load() {
-      setLoadingPosts(true);
-      setPostError(null);
-      try {
-        const feed = await api.fetchFeed(auth.token ?? undefined);
-        if (active) {
-          setPosts(feed);
-        }
-      } catch (err) {
-        if (active) {
-          setPostError((err as Error).message);
-        }
-      } finally {
-        if (active) {
-          setLoadingPosts(false);
-        }
-      }
-    }
-    load();
-    return () => {
-      active = false;
-    };
-  }, [auth.token]);
+  const [isPostDialogOpen, setPostDialogOpen] = React.useState(false);
+  const feedQuery = useFeed(auth.token ?? undefined);
+  const createPost = useCreatePost(auth.token);
+  const votePost = useVotePost(auth.token);
+  const postError = (feedQuery.error as Error | null)?.message ?? null;
 
   async function handleCreatePost(event: React.FormEvent) {
     event.preventDefault();
-    if (!auth.token) {
-      return;
-    }
-    setSubmitting(true);
-    setPostError(null);
     try {
-      const created = await api.createPost(auth.token, title, body);
-      setPosts((prev) => [created, ...prev]);
+      await createPost.mutateAsync({ title, body });
       setTitle("");
       setBody("");
-    } catch (err) {
-      setPostError((err as Error).message);
-    } finally {
-      setSubmitting(false);
+      setPostDialogOpen(false);
+    } catch {
+      // errors are surfaced via createPost.error
     }
   }
 
-  async function handleVote(post: api.Post, value: number) {
-    if (!auth.token) {
-      setPostError("login_required");
-      return;
-    }
-    const nextValue = post.myVote === value ? 0 : value;
-    const delta = nextValue - post.myVote;
-    setPosts((prev) =>
-      prev.map((item) =>
-        item.id === post.id
-          ? { ...item, myVote: nextValue, score: item.score + delta }
-          : item
-      )
-    );
+  async function handleVote(
+    postID: string,
+    currentVote: number,
+    value: number
+  ) {
+    const nextValue = currentVote === value ? 0 : value;
     try {
-      await api.votePost(auth.token, post.id, nextValue);
-    } catch (err) {
-      setPosts((prev) =>
-        prev.map((item) => (item.id === post.id ? post : item))
-      );
-      setPostError((err as Error).message);
+      await votePost.mutateAsync({ postID, value: nextValue });
+    } catch {
+      // errors are surfaced via votePost.error
     }
   }
 
@@ -155,13 +111,13 @@ export function HomePage() {
             <CardDescription>Latest posts from the community.</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            {loadingPosts && (
+            {feedQuery.isLoading && (
               <p className="text-sm text-muted-foreground">Loading posts...</p>
             )}
-            {!loadingPosts && posts.length === 0 && (
+            {!feedQuery.isLoading && (feedQuery.data?.length ?? 0) === 0 && (
               <p className="text-sm text-muted-foreground">No posts yet.</p>
             )}
-            {posts.map((post) => (
+            {(feedQuery.data ?? []).map((post) => (
               <Card
                 key={post.id}
                 className="rounded-2xl border-border/70 bg-background/70"
@@ -183,7 +139,7 @@ export function HomePage() {
                     <Button
                       type="button"
                       variant={post.myVote === 1 ? "success" : "outline"}
-                      onClick={() => handleVote(post, 1)}
+                      onClick={() => handleVote(post.id, post.myVote, 1)}
                     >
                       <ArrowUp className="h-4 w-4" />
                       Upvote
@@ -191,7 +147,7 @@ export function HomePage() {
                     <Button
                       type="button"
                       variant={post.myVote === -1 ? "destructive" : "outline"}
-                      onClick={() => handleVote(post, -1)}
+                      onClick={() => handleVote(post.id, post.myVote, -1)}
                     >
                       <ArrowDown className="h-4 w-4" />
                       Downvote
@@ -248,7 +204,7 @@ export function HomePage() {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <Dialog>
+              <Dialog open={isPostDialogOpen} onOpenChange={setPostDialogOpen}>
                 <DialogTrigger asChild>
                   <Button className="w-full">New post</Button>
                 </DialogTrigger>
@@ -284,8 +240,8 @@ export function HomePage() {
                           Cancel
                         </Button>
                       </DialogClose>
-                      <Button type="submit" disabled={submitting}>
-                        {submitting ? "Posting..." : "Post"}
+                      <Button type="submit" disabled={createPost.isPending}>
+                        {createPost.isPending ? "Posting..." : "Post"}
                       </Button>
                     </DialogFooter>
                   </form>

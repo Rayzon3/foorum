@@ -5,6 +5,7 @@ import { RouterProvider } from "@tanstack/react-router";
 
 import { router } from "./routes";
 import { AuthProvider } from "./lib/auth";
+import { Toaster } from "./components/ui/sonner";
 import "./index.css";
 
 const queryClient = new QueryClient();
@@ -14,6 +15,7 @@ ReactDOM.createRoot(document.getElementById("root")!).render(
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
         <RouterProvider router={router} />
+        <Toaster richColors />
       </AuthProvider>
     </QueryClientProvider>
   </React.StrictMode>

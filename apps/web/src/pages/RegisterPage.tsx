@@ -11,6 +11,7 @@ export function RegisterPage() {
       title="Create your account"
       action="Sign up"
       showUsername
+      externalError={auth.authError}
       onSubmit={async (email, password, username) => {
         await auth.register(email, username ?? "", password);
         await navigate({ to: "/" });

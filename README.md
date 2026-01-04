@@ -1,6 +1,6 @@
 # Jabber v3
 
-Monorepo scaffold for a social networking web app.
+Jabber is social app currently in development. Build rooms create posts, follow people, and keep the conversation flowing.
 
 ## Structure
 

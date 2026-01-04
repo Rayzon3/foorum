@@ -1,12 +1,14 @@
 import React from "react";
 
 import * as api from "./api";
+import { useLogin, useMe, useRegister } from "./hooks/auth";
 
 export type AuthState = {
   token: string | null;
   user: api.User | null;
   loading: boolean;
   error: string | null;
+  authError: string | null;
 };
 
 type AuthContextValue = AuthState & {
@@ -22,73 +24,50 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     () => localStorage.getItem("jabber_token")
   );
   const [user, setUser] = React.useState<api.User | null>(null);
-  const [loading, setLoading] = React.useState<boolean>(!!token);
-  const [error, setError] = React.useState<string | null>(null);
+  const [authError, setAuthError] = React.useState<string | null>(null);
+  const meQuery = useMe(token);
+  const loginMutation = useLogin();
+  const registerMutation = useRegister();
 
   React.useEffect(() => {
-    let cancelled = false;
-
-    async function load() {
-      if (!token) {
-        setLoading(false);
-        return;
-      }
-
-      setLoading(true);
-      try {
-        const me = await api.fetchMe(token);
-        if (!cancelled) {
-          setUser(me);
-          setError(null);
-        }
-      } catch (err) {
-        if (!cancelled) {
-          setToken(null);
-          setUser(null);
-          setError((err as Error).message);
-        }
-      } finally {
-        if (!cancelled) {
-          setLoading(false);
-        }
-      }
+    if (meQuery.data) {
+      setUser(meQuery.data);
+    } else if (!token) {
+      setUser(null);
     }
+  }, [meQuery.data, token]);
 
-    load();
-    return () => {
-      cancelled = true;
-    };
-  }, [token]);
+  React.useEffect(() => {
+    if (meQuery.isError && token) {
+      localStorage.removeItem("jabber_token");
+      setToken(null);
+      setUser(null);
+    }
+  }, [meQuery.isError, token]);
 
   async function handleLogin(identifier: string, password: string) {
-    setLoading(true);
     try {
-      const result = await api.login(identifier, password);
+      const result = await loginMutation.mutateAsync({ identifier, password });
       setToken(result.token);
       setUser(result.user);
       localStorage.setItem("jabber_token", result.token);
-      setError(null);
+      setAuthError(null);
     } catch (err) {
-      setError((err as Error).message);
+      setAuthError((err as Error).message);
       throw err;
-    } finally {
-      setLoading(false);
     }
   }
 
   async function handleRegister(email: string, username: string, password: string) {
-    setLoading(true);
     try {
-      const result = await api.register(email, username, password);
+      const result = await registerMutation.mutateAsync({ email, username, password });
       setToken(result.token);
       setUser(result.user);
       localStorage.setItem("jabber_token", result.token);
-      setError(null);
+      setAuthError(null);
     } catch (err) {
-      setError((err as Error).message);
+      setAuthError((err as Error).message);
       throw err;
-    } finally {
-      setLoading(false);
     }
   }
 
@@ -101,8 +80,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const value: AuthContextValue = {
     token,
     user,
-    loading,
-    error,
+    loading: meQuery.isLoading || loginMutation.isPending || registerMutation.isPending,
+    error: (meQuery.error as Error | null)?.message ?? null,
+    authError,
     login: handleLogin,
     register: handleRegister,
     logout: handleLogout

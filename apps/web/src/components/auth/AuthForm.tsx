@@ -13,6 +13,7 @@ type AuthFormProps = {
   showUsername?: boolean;
   emailLabel?: string;
   emailType?: "email" | "text";
+  externalError?: string | null;
 };
 
 export function AuthForm({
@@ -23,6 +24,7 @@ export function AuthForm({
   showUsername = false,
   emailLabel = "Email",
   emailType = "email",
+  externalError = null,
 }: AuthFormProps) {
   const [email, setEmail] = React.useState("");
   const [username, setUsername] = React.useState("");
@@ -85,7 +87,9 @@ export function AuthForm({
             <Button type="submit" disabled={auth.loading} className="w-full">
               {auth.loading ? "Working..." : action}
             </Button>
-            {error && <p className="text-xs text-destructive">{error}</p>}
+            {(error || externalError) && (
+              <p className="text-xs text-destructive">{error ?? externalError}</p>
+            )}
           </form>
         </CardContent>
         <CardFooter className="text-sm text-muted-foreground">

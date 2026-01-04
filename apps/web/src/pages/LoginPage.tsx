@@ -12,6 +12,7 @@ export function LoginPage() {
       action="Log in"
       emailLabel="Email or username"
       emailType="text"
+      externalError={auth.authError}
       onSubmit={async (identifier, password) => {
         await auth.login(identifier, password);
         await navigate({ to: "/" });
