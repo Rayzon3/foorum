@@ -20,3 +20,8 @@ type ICECandidate struct {
 	SDPMid        string `json:"sdpMid,omitempty"`
 	SDPMLineIndex uint16 `json:"sdpMLineIndex,omitempty"`
 }
+
+type Participant struct {
+	UserID string `json:"userId"`
+	Role   string `json:"role"`
+}

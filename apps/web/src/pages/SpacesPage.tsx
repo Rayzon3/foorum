@@ -8,6 +8,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from ".
 import { Mic, MicOff } from "lucide-react";
 
 type Role = "listener" | "speaker";
+type Participant = {
+  userId: string;
+  role: Role;
+};
 
 export function SpacesPage() {
   const auth = useAuth();
@@ -18,11 +22,17 @@ export function SpacesPage() {
   const [isMicOn, setMicOn] = React.useState(false);
   const [micError, setMicError] = React.useState<string | null>(null);
   const [remoteAudioActive, setRemoteAudioActive] = React.useState(false);
+  const [participants, setParticipants] = React.useState<Participant[]>([]);
+  const [micLevel, setMicLevel] = React.useState(0);
+  const isSpeakingSelf = role === "speaker" && isMicOn && micLevel > 0.12;
 
   const wsRef = React.useRef<WebSocket | null>(null);
   const pcRef = React.useRef<RTCPeerConnection | null>(null);
   const localStreamRef = React.useRef<MediaStream | null>(null);
   const remoteAudioRef = React.useRef<HTMLAudioElement | null>(null);
+  const audioContextRef = React.useRef<AudioContext | null>(null);
+  const localAnalyserRef = React.useRef<AnalyserNode | null>(null);
+  const rafRef = React.useRef<number | null>(null);
 
   function addLog(message: string) {
     setLogs((prev) => [...prev, `${new Date().toLocaleTimeString()} ${message}`].slice(-50));
@@ -86,6 +96,7 @@ export function SpacesPage() {
             .catch((err) => addLog(`audio_play_error ${(err as Error).message}`));
         }
         setRemoteAudioActive(true);
+
       };
 
       if (role === "speaker") {
@@ -95,6 +106,7 @@ export function SpacesPage() {
           stream.getTracks().forEach((track) => pc.addTrack(track, stream));
           setMicOn(stream.getTracks().some((track) => track.enabled));
           setMicError(null);
+          startMicVisualizer(stream);
         } catch (err) {
           const message = (err as Error).message;
           setMicError(message);
@@ -129,6 +141,25 @@ export function SpacesPage() {
           });
         }
       }
+      if (msg.type === "participants") {
+        const list = msg.payload?.participants ?? [];
+        setParticipants(list);
+      }
+      if (msg.type === "participant_joined") {
+        const participant = msg.payload?.participant;
+        if (participant?.userId) {
+          setParticipants((prev) => {
+            const filtered = prev.filter((p) => p.userId !== participant.userId);
+            return [...filtered, participant];
+          });
+        }
+      }
+      if (msg.type === "participant_left") {
+        const userId = msg.payload?.userId;
+        if (userId) {
+          setParticipants((prev) => prev.filter((p) => p.userId !== userId));
+        }
+      }
       if (msg.type === "error") {
         addLog(`error ${msg.error}`);
       }
@@ -149,6 +180,7 @@ export function SpacesPage() {
     setMicOn(false);
     setMicError(null);
     setRemoteAudioActive(false);
+    setParticipants([]);
     if (wsRef.current) {
       wsRef.current.close();
       wsRef.current = null;
@@ -161,6 +193,47 @@ export function SpacesPage() {
       localStreamRef.current.getTracks().forEach((track) => track.stop());
       localStreamRef.current = null;
     }
+    stopMicVisualizer();
+  }
+
+  async function startMicVisualizer(stream: MediaStream) {
+    if (rafRef.current) {
+      return;
+    }
+    if (!audioContextRef.current) {
+      audioContextRef.current = new AudioContext();
+    }
+    const audioCtx = audioContextRef.current;
+    if (audioCtx.state === "suspended") {
+      await audioCtx.resume();
+    }
+    const source = audioCtx.createMediaStreamSource(stream);
+    const analyser = audioCtx.createAnalyser();
+    analyser.fftSize = 512;
+    source.connect(analyser);
+    localAnalyserRef.current = analyser;
+
+    const buffer = new Uint8Array(analyser.frequencyBinCount);
+    const tick = () => {
+      analyser.getByteFrequencyData(buffer);
+      const level = avgLevel(buffer);
+      setMicLevel(level);
+      rafRef.current = requestAnimationFrame(tick);
+    };
+    rafRef.current = requestAnimationFrame(tick);
+  }
+
+  function stopMicVisualizer() {
+    if (rafRef.current) {
+      cancelAnimationFrame(rafRef.current);
+      rafRef.current = null;
+    }
+    setMicLevel(0);
+    localAnalyserRef.current = null;
+    if (audioContextRef.current) {
+      audioContextRef.current.close().catch(() => {});
+      audioContextRef.current = null;
+    }
   }
 
 
@@ -172,6 +245,9 @@ export function SpacesPage() {
     localStreamRef.current.getTracks().forEach((track) => {
       track.enabled = !track.enabled;
       setMicOn(track.enabled);
+      if (!track.enabled) {
+        setMicLevel(0);
+      }
     });
   }
 
@@ -215,10 +291,25 @@ export function SpacesPage() {
               Disconnect
             </Button>
             {role === "speaker" && (
-              <Button variant={isMicOn ? "success" : "destructive"} onClick={toggleMic} disabled={status !== "connected"}>
-                {isMicOn ? <Mic className="h-4 w-4" /> : <MicOff className="h-4 w-4" />}
-                {isMicOn ? "Mic on" : "Mic off"}
-              </Button>
+              <div className="relative">
+                <span
+                  className="absolute inset-0 rounded-full bg-success/40"
+                  style={{
+                    transform: `scale(${1 + Math.min(1.5, micLevel * 2.5)})`,
+                    opacity: Math.min(0.9, micLevel * 2.2),
+                    transition: "transform 120ms ease, opacity 120ms ease",
+                  }}
+                />
+                <Button
+                  variant={isMicOn ? "success" : "destructive"}
+                  onClick={toggleMic}
+                  disabled={status !== "connected"}
+                  className="relative z-10"
+                >
+                  {isMicOn ? <Mic className="h-4 w-4" /> : <MicOff className="h-4 w-4" />}
+                  {isMicOn ? "Mic on" : "Mic off"}
+                </Button>
+              </div>
             )}
             <span className="text-sm text-muted-foreground">Status: {status}</span>
           </div>
@@ -252,6 +343,51 @@ export function SpacesPage() {
 
       <Card className="rounded-3xl border-border/70 bg-card/80">
         <CardHeader>
+          <CardTitle className="text-lg">Participants</CardTitle>
+          <CardDescription>
+            {participants.length} in room
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-2 text-sm">
+          {participants.length === 0 && (
+            <p className="text-muted-foreground">No one here yet.</p>
+          )}
+          {participants.map((participant) => (
+            <div key={participant.userId} className="flex items-center justify-between rounded-2xl border border-border/60 bg-background/70 px-3 py-2">
+              <div className="flex items-center gap-2">
+                <span className="text-xs uppercase text-muted-foreground">
+                  {participant.userId.slice(0, 8)}
+                </span>
+                {auth.user?.id === participant.userId && (
+                  <span className="rounded-full bg-accent px-2 py-0.5 text-[10px] text-accent-foreground">
+                    You
+                  </span>
+                )}
+                {auth.user?.id === participant.userId && (
+                  <span
+                    className={`h-2 w-2 rounded-full ${
+                      isSpeakingSelf ? "bg-success" : "bg-muted"
+                    }`}
+                    title={isSpeakingSelf ? "Speaking" : "Idle"}
+                  />
+                )}
+              </div>
+              <span
+                className={`rounded-full px-2 py-0.5 text-[10px] ${
+                  participant.role === "speaker"
+                    ? "bg-success text-success-foreground"
+                    : "bg-muted text-muted-foreground"
+                }`}
+              >
+                {participant.role}
+              </span>
+            </div>
+          ))}
+        </CardContent>
+      </Card>
+
+      <Card className="rounded-3xl border-border/70 bg-card/80">
+        <CardHeader>
           <CardTitle className="text-lg">Logs</CardTitle>
         </CardHeader>
         <CardContent className="space-y-1 text-xs text-muted-foreground">
@@ -263,4 +399,12 @@ export function SpacesPage() {
       </Card>
     </div>
   );
+}
+
+function avgLevel(buffer: Uint8Array) {
+  let sum = 0;
+  for (const value of buffer) {
+    sum += value;
+  }
+  return Math.min(1, sum / buffer.length / 255);
 }

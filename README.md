@@ -41,6 +41,7 @@ Jabber is social app currently in development. Build rooms create posts, follow 
   - Example client URL: `ws://localhost:8080/api/v1/rooms/lobby/ws?token=<jwt>`
 
 Message protocol (JSON):
+
 - Client → Server:
   - `{ "type": "join", "payload": { "role": "speaker" | "listener" } }`
   - `{ "type": "offer", "sdp": "<sdp>" }`

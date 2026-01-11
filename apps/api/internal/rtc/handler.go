@@ -77,7 +77,10 @@ func (h *Handler) ServeWS(w http.ResponseWriter, r *http.Request, roomID string)
 	peer := NewPeer(randomID(), claims.UserID)
 	room := h.rooms.Get(roomID)
 	room.AddPeer(peer)
-	defer room.RemovePeer(peer.ID())
+	peer.Send() <- ServerMessage{
+		Type:    "participants",
+		Payload: map[string]any{"participants": room.Participants()},
+	}
 
 	done := make(chan struct{})
 	go h.writeLoop(conn, peer.Send(), done)
@@ -100,6 +103,11 @@ func (h *Handler) ServeWS(w http.ResponseWriter, r *http.Request, roomID string)
 	if pc := peer.PeerConnection(); pc != nil {
 		_ = pc.Close()
 	}
+	room.RemovePeer(peer.ID())
+	room.Broadcast(ServerMessage{
+		Type:    "participant_left",
+		Payload: map[string]any{"userId": peer.UserID()},
+	})
 }
 
 func (h *Handler) handleClientMessage(room *Room, peer *Peer, msg ClientMessage) error {
@@ -108,6 +116,10 @@ func (h *Handler) handleClientMessage(room *Room, peer *Peer, msg ClientMessage)
 		role := strings.ToLower(stringValueFromAny(msg.Payload, "role"))
 		if role == "speaker" || role == "listener" {
 			peer.SetRole(role)
+			room.Broadcast(ServerMessage{
+				Type:    "participant_joined",
+				Payload: map[string]any{"participant": Participant{UserID: peer.UserID(), Role: peer.Role()}},
+			})
 		}
 		return nil
 	case "offer":
@@ -163,7 +175,7 @@ func (h *Handler) handleOffer(room *Room, peer *Peer, sdp string) error {
 			if err != nil {
 				return
 			}
-			room.AddTrack(track.ID(), localTrack)
+			room.AddTrack(peer.ID(), track.ID(), localTrack)
 
 			for _, other := range room.Peers() {
 				if other.ID() == peer.ID() {
