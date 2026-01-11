@@ -1,6 +1,8 @@
 package utils
 
 import (
+  "bufio"
+  "net"
   "fmt"
   "log"
   "net/http"
@@ -15,6 +17,28 @@ type statusRecorder struct {
 func (sr *statusRecorder) WriteHeader(code int) {
   sr.status = code
   sr.ResponseWriter.WriteHeader(code)
+}
+
+func (sr *statusRecorder) Flush() {
+  if flusher, ok := sr.ResponseWriter.(http.Flusher); ok {
+    flusher.Flush()
+  }
+}
+
+func (sr *statusRecorder) Hijack() (net.Conn, *bufio.ReadWriter, error) {
+  hijacker, ok := sr.ResponseWriter.(http.Hijacker)
+  if !ok {
+    return nil, nil, http.ErrNotSupported
+  }
+  return hijacker.Hijack()
+}
+
+func (sr *statusRecorder) Push(target string, opts *http.PushOptions) error {
+  pusher, ok := sr.ResponseWriter.(http.Pusher)
+  if !ok {
+    return http.ErrNotSupported
+  }
+  return pusher.Push(target, opts)
 }
 
 func RequestLogger(next http.Handler) http.Handler {

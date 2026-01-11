@@ -34,3 +34,17 @@ Jabber is social app currently in development. Build rooms create posts, follow 
 - `GET /api/v1/posts` (optional `Authorization: Bearer <token>`)
 - `POST /api/v1/posts` (requires `Authorization: Bearer <token>`)
 - `POST /api/v1/posts/:postID/vote` (requires `Authorization: Bearer <token>`, body `{ "value": 1 | -1 | 0 }`)
+
+## RTC (Spaces-style) signaling
+
+- WebSocket: `GET /api/v1/rooms/:roomID/ws` (requires `Authorization: Bearer <token>` or `?token=...`)
+  - Example client URL: `ws://localhost:8080/api/v1/rooms/lobby/ws?token=<jwt>`
+
+Message protocol (JSON):
+- Client → Server:
+  - `{ "type": "join", "payload": { "role": "speaker" | "listener" } }`
+  - `{ "type": "offer", "sdp": "<sdp>" }`
+  - `{ "type": "candidate", "candidate": { "candidate": "<ice>", "sdpMid": "audio", "sdpMLineIndex": 0 } }`
+- Server → Client:
+  - `{ "type": "answer", "sdp": "<sdp>" }`
+  - `{ "type": "candidate", "candidate": { "candidate": "<ice>", "sdpMid": "audio", "sdpMLineIndex": 0 } }`

@@ -8,6 +8,7 @@ import { AppShell } from "./components/layout/AppShell";
 import { HomePage } from "./pages/HomePage";
 import { LoginPage } from "./pages/LoginPage";
 import { RegisterPage } from "./pages/RegisterPage";
+import { SpacesPage } from "./pages/SpacesPage";
 
 const rootRoute = createRootRoute({
   component: AppShell,
@@ -31,10 +32,17 @@ const registerRoute = createRoute({
   component: RegisterPage,
 });
 
+const spacesRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/spaces",
+  component: SpacesPage,
+});
+
 const routeTree = rootRoute.addChildren([
   indexRoute,
   loginRoute,
   registerRoute,
+  spacesRoute,
 ]);
 
 export const router = createRouter({ routeTree });

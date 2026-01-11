@@ -22,6 +22,9 @@ export function AppShell() {
             <Button variant="ghost" asChild>
               <Link to="/">Home</Link>
             </Button>
+            <Button variant="ghost" asChild>
+              <Link to="/spaces">Spaces</Link>
+            </Button>
             {!auth.user && (
               <>
                 <Button variant="outline" asChild>
