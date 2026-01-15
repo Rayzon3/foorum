@@ -7,10 +7,12 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"strings"
 	"syscall"
 	"time"
 
 	_ "github.com/jackc/pgx/v5/stdlib"
+	"github.com/pressly/goose/v3"
 
 	"jabber_v3/apps/api/internal/auth"
 	"jabber_v3/apps/api/internal/config"
@@ -31,6 +33,15 @@ func main() {
   defer cancel()
   if err := db.PingContext(ctx); err != nil {
     log.Fatalf("db ping failed: %v", err)
+  }
+
+  if shouldMigrate(os.Getenv("MIGRATE_ON_START")) {
+    if err := goose.SetDialect("postgres"); err != nil {
+      log.Fatalf("migrations init failed: %v", err)
+    }
+    if err := goose.Up(db, "db/migrations"); err != nil {
+      log.Fatalf("migrations failed: %v", err)
+    }
   }
 
   appStore := store.New(db)
@@ -59,5 +70,14 @@ func main() {
   defer shutdownCancel()
   if err := httpServer.Shutdown(shutdownCtx); err != nil {
     log.Printf("shutdown error: %v", err)
+  }
+}
+
+func shouldMigrate(raw string) bool {
+  switch strings.ToLower(strings.TrimSpace(raw)) {
+  case "1", "true", "yes", "y", "on":
+    return true
+  default:
+    return false
   }
 }
