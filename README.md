@@ -1,6 +1,4 @@
-# Jabber v3
-
-Jabber is social app currently in development. Build rooms create posts, follow people, and keep the conversation flowing.
+# Foorum
 
 ## Structure
 
