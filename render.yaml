@@ -26,7 +26,6 @@ services:
   - type: web
     name: foorum-web
     env: static
-    plan: free
     rootDir: .
     buildCommand: pnpm install --filter ./apps/web... --frozen-lockfile && pnpm --filter ./apps/web... build
     staticPublishPath: apps/web/dist
