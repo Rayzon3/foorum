@@ -22,9 +22,9 @@ export function AppShell() {
             <Button variant="ghost" asChild>
               <Link to="/">Home</Link>
             </Button>
-            <Button variant="ghost" asChild>
+            {/* <Button variant="ghost" asChild>
               <Link to="/spaces">Spaces</Link>
-            </Button>
+            </Button> */}
             {!auth.user && (
               <>
                 <Button variant="outline" asChild>

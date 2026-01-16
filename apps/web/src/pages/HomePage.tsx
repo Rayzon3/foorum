@@ -180,9 +180,9 @@ export function HomePage() {
                 <p className="font-semibold text-foreground">
                   {auth.user.email}
                 </p>
-                <p className="text-xs text-muted-foreground">
+                {/* <p className="text-xs text-muted-foreground">
                   User ID: {auth.user.id}
-                </p>
+                </p> */}
               </div>
             )}
             {!auth.loading && !auth.user && (
