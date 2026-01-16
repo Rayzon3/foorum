@@ -111,55 +111,63 @@ export function HomePage() {
             <CardDescription>Latest posts from the community.</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            {feedQuery.isLoading && (
+            {!auth.user && (
+              <p className="text-sm text-muted-foreground">
+                Log in to view the home feed.
+              </p>
+            )}
+            {auth.user && feedQuery.isLoading && (
               <p className="text-sm text-muted-foreground">Loading posts...</p>
             )}
-            {!feedQuery.isLoading && (feedQuery.data?.length ?? 0) === 0 && (
-              <p className="text-sm text-muted-foreground">No posts yet.</p>
-            )}
-            {(feedQuery.data ?? []).map((post) => (
-              <Card
-                key={post.id}
-                className="rounded-2xl border-border/70 bg-background/70"
-              >
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-lg">{post.title}</CardTitle>
-                  <CardDescription>
-                    {post.author.username || post.author.email} ·{" "}
-                    {new Date(post.createdAt).toLocaleString()}
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="pt-0">
-                  <p className="text-sm text-foreground/90 whitespace-pre-line">
-                    {post.body}
-                  </p>
-                </CardContent>
-                <CardFooter className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <Button
-                      type="button"
-                      variant={post.myVote === 1 ? "success" : "outline"}
-                      onClick={() => handleVote(post.id, post.myVote, 1)}
-                    >
-                      <ArrowUp className="h-4 w-4" />
-                      Upvote
-                    </Button>
-                    <Button
-                      type="button"
-                      variant={post.myVote === -1 ? "destructive" : "outline"}
-                      onClick={() => handleVote(post.id, post.myVote, -1)}
-                    >
-                      <ArrowDown className="h-4 w-4" />
-                      Downvote
-                    </Button>
-                  </div>
-                  <span className="text-sm text-muted-foreground">
-                    Score: {post.score}
-                  </span>
-                </CardFooter>
-              </Card>
-            ))}
-            {postError && (
+            {auth.user &&
+              !feedQuery.isLoading &&
+              (feedQuery.data?.length ?? 0) === 0 && (
+                <p className="text-sm text-muted-foreground">No posts yet.</p>
+              )}
+            {auth.user &&
+              (feedQuery.data ?? []).map((post) => (
+                <Card
+                  key={post.id}
+                  className="rounded-2xl border-border/70 bg-background/70"
+                >
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-lg">{post.title}</CardTitle>
+                    <CardDescription>
+                      {post.author.username || post.author.email} ·{" "}
+                      {new Date(post.createdAt).toLocaleString()}
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent className="pt-0">
+                    <p className="text-sm text-foreground/90 whitespace-pre-line">
+                      {post.body}
+                    </p>
+                  </CardContent>
+                  <CardFooter className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <Button
+                        type="button"
+                        variant={post.myVote === 1 ? "success" : "outline"}
+                        onClick={() => handleVote(post.id, post.myVote, 1)}
+                      >
+                        <ArrowUp className="h-4 w-4" />
+                        Upvote
+                      </Button>
+                      <Button
+                        type="button"
+                        variant={post.myVote === -1 ? "destructive" : "outline"}
+                        onClick={() => handleVote(post.id, post.myVote, -1)}
+                      >
+                        <ArrowDown className="h-4 w-4" />
+                        Downvote
+                      </Button>
+                    </div>
+                    <span className="text-sm text-muted-foreground">
+                      Score: {post.score}
+                    </span>
+                  </CardFooter>
+                </Card>
+              ))}
+            {auth.user && postError && (
               <p className="text-xs text-destructive">
                 Post error: {postError}
               </p>

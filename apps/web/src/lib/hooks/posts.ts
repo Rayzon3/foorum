@@ -9,6 +9,7 @@ export function useFeed(token?: string) {
   return useQuery({
     queryKey: feedKey(token),
     queryFn: () => api.fetchFeed(token),
+    enabled: Boolean(token),
   });
 }
 
